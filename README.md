@@ -43,6 +43,40 @@ You need network access to the router, including your VPN if it is private.
 An administrator can issue a separate client key for each person. Admin keys
 are unnecessary for this integration.
 
+## Update the extension
+
+For an npm installation, run this in your terminal:
+
+```sh
+pi update --extensions
+```
+
+This updates your unpinned Pi packages, including `pi-discrimen`. Restart Pi or
+run `/reload` in an existing session to load the updated extension. Your saved
+Discrimen login is kept; you do not need to enter the router URL or API key again.
+
+If you installed a specific version, such as `npm:pi-discrimen@0.1.1`, it stays
+pinned. Switch to the latest release and receive future updates with:
+
+```sh
+pi install npm:pi-discrimen
+```
+
+Then restart Pi or run `/reload`. Git tags and commits also stay pinned; install
+the desired newer Git tag explicitly. For a local checkout, pull the latest
+source in that directory, then restart Pi or run `/reload`.
+
+To refresh the available models without updating the extension, run inside Pi:
+
+```text
+/discrimen refresh
+/model
+```
+
+If prompted to connect, run `/login discrimen` first. If you still have the old
+`pi-discrimin` package, follow [Migrating from the misspelled package](#migrating-from-the-misspelled-package);
+updating it does not switch to the corrected package name.
+
 ## Models and commands
 
 | Command | Action |
@@ -136,9 +170,9 @@ The package is published as `pi-discrimen`. Users install it with:
 pi install npm:pi-discrimen
 ```
 
-Users with an unpinned installation run `pi update --extensions`. For reproducible
-installs, use `pi install npm:pi-discrimen@0.1.1`; a pinned installation stays on
-that version until its package specification is changed.
+See [Update the extension](#update-the-extension) for upgrading an installation.
+For reproducible installs, use `pi install npm:pi-discrimen@0.1.1`; a pinned
+installation stays on that version until its package specification is changed.
 
 ### CI releases from GitHub
 
