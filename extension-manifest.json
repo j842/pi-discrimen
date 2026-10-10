@@ -1,7 +1,7 @@
 {
   "id": "pi-discrimen",
   "name": "Discrimen",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Connect Pi to a Discrimen router and show the backend serving each response.",
   "provides": {
     "commands": [

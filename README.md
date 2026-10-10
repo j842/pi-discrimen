@@ -66,7 +66,8 @@ Then restart Pi or run `/reload`. Git tags and commits also stay pinned; install
 the desired newer Git tag explicitly. For a local checkout, pull the latest
 source in that directory, then restart Pi or run `/reload`.
 
-To refresh the available models without updating the extension, run inside Pi:
+Opening `/model` automatically refreshes the available models. To request a
+refresh separately, run inside Pi:
 
 ```text
 /discrimen refresh
@@ -83,16 +84,22 @@ updating it does not switch to the corrected package name.
 | --- | --- |
 | `/login discrimen` | Connect, change router, or replace the API key |
 | `/discrimen auto` | Select the router's `default` model |
-| `/model` | Choose Auto, Expert, or an underlying model |
+| `/model` | Refresh the catalogue and choose Auto, Expert, or an underlying model |
 | `/discrimen refresh` | Fetch the latest catalogue, including additions and removals |
 | `/discrimen status` | Show the configured URL and current catalogue size |
 | `/logout` | Remove the saved Discrimen credential through Pi's provider menu |
 
-The catalogue is discovered at startup and through Pi's provider refresh flow.
-Successful results are reused in memory for up to 60 seconds; the refresh command
-bypasses that cache. Discovery has an eight-second timeout. An outage retains
+The catalogue is discovered at startup and refreshed whenever you open `/model`
+while Pi's network access is enabled. The picker shows the current list while it
+fetches additions and removals in the background. `/discrimen refresh` also
+fetches a fresh catalogue. Discovery has an eight-second timeout. An outage retains
 the last successful catalogue for the same connection in the running process.
 Changing connections clears the previous fleet; catalogues are not saved to disk.
+
+If an older installation reports `refreshed 1 models` and only shows Auto after
+login, update to **0.1.2 or newer**, restart Pi, and open `/model`. Versions 0.1.0
+and 0.1.1 could lose the saved router URL during refresh. Your saved login remains
+valid; no new API key is needed.
 
 Auto and Expert leave `reasoning_effort` unset so the router decides whether to
 think. A named thinking-capable model exposes Pi's normal thinking controls.
@@ -171,7 +178,7 @@ pi install npm:pi-discrimen
 ```
 
 See [Update the extension](#update-the-extension) for upgrading an installation.
-For reproducible installs, use `pi install npm:pi-discrimen@0.1.1`; a pinned
+For reproducible installs, use `pi install npm:pi-discrimen@0.1.2`; a pinned
 installation stays on that version until its package specification is changed.
 
 ### CI releases from GitHub
@@ -233,7 +240,7 @@ git push origin "v$(node -p 'require("./package.json").version')"
 version change, and creates its tag. Use `minor`,
 `major`, or an explicit version instead of `patch` when appropriate. Never
 reuse an already-published version. Release tags must exactly match
-`package.json`, for example `v0.1.1` for version `0.1.1`. If npm rejects the OIDC
+`package.json`, for example `v0.1.2` for version `0.1.2`. If npm rejects the OIDC
 authentication, check the exact publisher fields and allowed actions above;
 recreate an expired publisher configuration and rerun the failed workflow.
 
@@ -251,7 +258,7 @@ when establishing a reproducible dependency baseline.
 Install a tagged release from the public repository:
 
 ```sh
-pi install git:github.com/j842/pi-discrimen@v0.1.1
+pi install git:github.com/j842/pi-discrimen@v0.1.2
 ```
 
 Private repositories require the user's Git credentials. A public repository is
@@ -261,12 +268,12 @@ package. A tagged installation stays pinned to that tag.
 
 ### Downloadable archive
 
-`npm pack` creates `pi-discrimen-0.1.1.tgz`. Share that file; recipients extract
+`npm pack` creates `pi-discrimen-0.1.2.tgz`. Share that file; recipients extract
 it into a permanent directory and install the extracted package by local path:
 
 ```sh
 mkdir pi-discrimen
-tar -xzf pi-discrimen-0.1.1.tgz -C pi-discrimen --strip-components=1
+tar -xzf pi-discrimen-0.1.2.tgz -C pi-discrimen --strip-components=1
 pi install ./pi-discrimen
 ```
 
@@ -279,9 +286,10 @@ npm install
 npm run verify
 ```
 
-Tests cover authentication and cancellation, model metadata, refreshes and
-outages, terminal-safe footer text, and a real Pi CLI session with a fixture HTTP
-transport. The CLI test discovers the models, makes two streamed requests,
+Tests cover authentication and cancellation, model metadata, saved-login refreshes,
+Pi's model picker across catalogue changes and outages, terminal-safe footer text,
+and a real Pi CLI session with a fixture HTTP transport. The CLI test loads a saved
+login, discovers and refreshes the models, makes two streamed requests,
 executes Pi's `read` tool against a temporary file, and observes both backend
 identities in the footer API. It requires no router key or running model and
 does not alter your Pi configuration. A production router smoke test remains

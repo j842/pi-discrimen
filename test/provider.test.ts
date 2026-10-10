@@ -51,7 +51,53 @@ test("Pi's model runtime persists the native login and resolves the saved endpoi
   assert.equal(await runtime.getAuth("discrimen"), undefined);
 });
 
-test("discovery refreshes additions/removals, caches briefly, and retains a good catalogue during outages", async () => {
+test("network refresh after native login retains the saved router URL and discovers catalogue changes", async () => {
+  const urls: string[] = [];
+  let model = "before-refresh";
+  const provider = createDiscrimenProvider({ env: () => undefined, fetcher: async (input) => {
+    urls.push(String(input));
+    return Response.json({ data: [{ id: "default" }, { id: model }] });
+  } });
+  const runtime = createModels({ authContext: { env: async () => undefined, fileExists: async () => false } });
+  runtime.setProvider(provider);
+  await runtime.login("discrimen", "api_key", {
+    prompt: async (prompt) => prompt.type === "secret" ? "saved-key" : "https://saved.example/prefix",
+    notify() {},
+  });
+  await runtime.refresh({ providers: ["discrimen"], allowNetwork: false });
+  assert.ok(runtime.getModel("discrimen", "before-refresh"));
+  model = "after-refresh";
+  const result = await runtime.refresh({ providers: ["discrimen"], allowNetwork: true, force: true });
+  assert.equal(result.errors.size, 0);
+  assert.equal(result.aborted, false);
+  assert.deepEqual(runtime.getModels("discrimen").map((model) => model.id), ["default", "after-refresh"]);
+  assert.deepEqual(urls, ["https://saved.example/prefix/v1/models", "https://saved.example/prefix/v1/models"]);
+});
+
+test("each model-picker refresh discovers changes even immediately after login", async () => {
+  let model = "before-picker";
+  let requests = 0;
+  const provider = createDiscrimenProvider({ env: () => undefined, fetcher: async () => {
+    requests++;
+    return Response.json({ data: [{ id: "default" }, { id: model }] });
+  } });
+  const runtime = createModels({ authContext: { env: async () => undefined, fileExists: async () => false } });
+  runtime.setProvider(provider);
+  await runtime.login("discrimen", "api_key", {
+    prompt: async (prompt) => prompt.type === "secret" ? "saved-key" : "https://saved.example",
+    notify() {},
+  });
+  for (const next of ["first-picker", "second-picker"]) {
+    model = next;
+    // Pi's model picker requests a normal refresh, without force.
+    const result = await runtime.refresh();
+    assert.equal(result.errors.size, 0);
+    assert.deepEqual(runtime.getModels("discrimen").map((model) => model.id), ["default", next]);
+  }
+  assert.equal(requests, 3);
+});
+
+test("discovery refreshes additions/removals, reuses offline state, and retains a good catalogue during outages", async () => {
   let body = [{ id: "default" }, { id: "old" }];
   let calls = 0;
   let failing = false;
@@ -61,7 +107,7 @@ test("discovery refreshes additions/removals, caches briefly, and retains a good
     return Response.json({ data: body });
   } });
   await primeProvider(provider, credential);
-  await provider.refreshModels!(refreshContext());
+  await provider.refreshModels!(refreshContext({ allowNetwork: false }));
   assert.equal(calls, 1);
   body = [{ id: "default" }, { id: "new" }];
   await provider.refreshModels!(refreshContext({ force: true }));

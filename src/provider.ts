@@ -2,17 +2,16 @@ import { createProvider, type Credential, type Provider, type RefreshModelsConte
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import { connectionFrom, credentialFor, discoverModels, fallbackModel, normalizeUrl, PROVIDER, type Connection, type Environment, type RouterModel } from "./router.ts";
 
-export interface ProviderOptions { env?: Environment; fetcher?: typeof fetch; now?: () => number }
+export interface ProviderOptions { env?: Environment; fetcher?: typeof fetch }
 
 export function createDiscrimenProvider(options: ProviderOptions = {}): Provider<"openai-completions"> {
   const env = options.env ?? ((name: string) => process.env[name]);
-  const now = options.now ?? Date.now;
   let models: RouterModel[] = [fallbackModel()];
-  let cache: { connection: Connection; models: RouterModel[]; at: number } | undefined;
+  let cache: { connection: Connection; models: RouterModel[] } | undefined;
   const sameConnection = (a: Connection, b: Connection) => a.baseUrl === b.baseUrl && a.apiKey === b.apiKey;
   const fetchCatalogue = async (connection: Connection, signal?: AbortSignal) => {
     const discovered = await discoverModels(connection, signal, options.fetcher);
-    return { connection, models: discovered, at: now() };
+    return { connection, models: discovered };
   };
   const provider = createProvider<"openai-completions">({
     id: PROVIDER,
@@ -40,7 +39,13 @@ export function createDiscrimenProvider(options: ProviderOptions = {}): Provider
         async resolve({ credential, ctx, signal }) {
           signal.throwIfAborted();
           const connection = await connectionFrom(credential, (name) => ctx.env(name));
-          return connection ? { auth: { apiKey: connection.apiKey, baseUrl: connection.baseUrl }, source: credential?.key ? "Stored Discrimen key" : "DISCRIMEN_API_KEY" } : undefined;
+          // Pi passes the resolved key and environment into network refreshes.
+          // auth.baseUrl alone is not retained in that refresh credential.
+          return connection ? {
+            auth: { apiKey: connection.apiKey, baseUrl: connection.baseUrl },
+            env: { DISCRIMEN_URL: connection.baseUrl },
+            source: credential?.key ? "Stored Discrimen key" : "DISCRIMEN_API_KEY",
+          } : undefined;
         },
       },
     },
@@ -54,7 +59,7 @@ export function createDiscrimenProvider(options: ProviderOptions = {}): Provider
       return;
     }
     const matches = cache && sameConnection(cache.connection, connection);
-    if (matches && (!context.allowNetwork || (!context.force && now() - cache!.at < 60_000))) {
+    if (matches && !context.allowNetwork) {
       const cached = cache!;
       await context.publish({ update: () => { models = cached.models; } });
       return;

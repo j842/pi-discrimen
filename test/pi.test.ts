@@ -26,14 +26,21 @@ test("real Pi loads the package, discovers models, streams a tool round trip, an
     const observer = join(work, "observe.ts");
     await writeFile(observer, `import { appendFileSync } from "node:fs";
 export default function(pi) {
-  pi.on("session_start", (_event, ctx) => {
+  pi.on("session_start", async (_event, ctx) => {
+    const result = await ctx.modelRegistry.refresh({ providers: ["discrimen"], allowNetwork: true, force: true });
+    if (result.errors.size || !ctx.modelRegistry.find("discrimen", "test-qwen")) throw new Error("Saved-login catalogue refresh failed");
     const original = ctx.ui.setStatus.bind(ctx.ui);
     ctx.ui.setStatus = (key, value) => { appendFileSync(${JSON.stringify(join(work, "statuses.jsonl"))}, JSON.stringify({key, value}) + "\\n"); original(key, value); };
   });
 }`);
     const packagePath = await realpath(join(root, "node_modules/@earendil-works/pi-coding-agent"));
     const cli = join(packagePath, "dist/bundle/cli.js");
-    const env = { ...process.env, PI_CODING_AGENT_DIR: join(work, "agent"), DISCRIMEN_URL: "https://discrimen.test", DISCRIMEN_API_KEY: "test-client-key", NO_COLOR: "1" };
+    const agentDir = join(work, "agent");
+    await mkdir(agentDir);
+    await writeFile(join(agentDir, "auth.json"), JSON.stringify({ discrimen: {
+      type: "api_key", key: "test-client-key", env: { DISCRIMEN_URL: "https://discrimen.test/v1" },
+    } }));
+    const env = { ...process.env, PI_CODING_AGENT_DIR: agentDir, DISCRIMEN_URL: undefined, DISCRIMEN_API_KEY: undefined, NO_COLOR: "1" };
     const runPi = async (args: string[]) => {
       const outFile = join(work, "stdout.txt"), errFile = join(work, "stderr.txt");
       const out = openSync(outFile, "w"), err = openSync(errFile, "w");
