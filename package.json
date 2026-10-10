@@ -1,0 +1,34 @@
+{
+  "name": "pi-discrimin",
+  "version": "0.1.0",
+  "description": "Discrimen auto-routing, live model discovery, and backend visibility for Pi coding agent.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://forge.jde.nz/public/pi-discrimin.git"
+  },
+  "homepage": "https://forge.jde.nz/public/pi-discrimin",
+  "bugs": { "url": "https://forge.jde.nz/public/pi-discrimin/issues" },
+  "keywords": ["pi-package", "pi-extension", "discrimen", "discrimin", "llm-router"],
+  "files": ["src", "README.md", "LICENSE", "extension-manifest.json"],
+  "pi": { "extensions": ["./src/index.ts"] },
+  "engines": { "node": ">=22.19.0" },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.0.4",
+    "@earendil-works/pi-coding-agent": "1.0.4",
+    "@types/node": "^22.19.0",
+    "typescript": "^5.9.0"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "verify": "npm run check && npm test",
+    "prepublishOnly": "npm run verify"
+  },
+  "publishConfig": { "access": "public" }
+}

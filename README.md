@@ -135,25 +135,66 @@ Users then run:
 pi install npm:pi-discrimin
 ```
 
-For updates, increment the package version, verify, and publish again. Users
+For automated updates, use the release workflow below. Users
 with an unpinned installation run `pi update --extensions`. For reproducible
 installs, use `pi install npm:pi-discrimin@0.1.0`; a pinned installation stays on
 that version until its package specification is changed.
 
-### Git: share before publishing to npm
+### CI releases on forge.jde.nz
 
-Put this directory in its own Git repository on GitHub, Gitea, or Forgejo.
-Commit the source, tests, manifest, README, and licence, and tag a release
-`v0.1.0`. Replace the example account with your repository owner:
+`.gitea/workflows/publish.yaml` tests pushes to `main`, pull requests, and `v*`
+tags using Node 24. Release tags must exactly match `package.json`: `v0.1.0`
+for version `0.1.0`. The workflow typechecks, runs the tests, packs the package,
+and runs the Pi integration test against the extracted archive before publishing
+that same archive. Stable versions use npm's `latest` channel; prereleases such
+as `v0.2.0-beta.1` use `next`. Branch pushes and pull requests only verify.
+
+One-time setup:
+
+1. Enable Actions for `public/pi-discrimin` and make an `ubuntu-latest` runner
+   available to the repository.
+2. For a new npm package, first publish `0.1.0` using the manual commands above
+   to claim the name under your npm account. This lets you restrict the CI token
+   to this package.
+3. Create an npm **granular access token**, with **Read and write (publish and
+   stage)** access to `pi-discrimin` and **Bypass 2FA** enabled for unattended
+   publishing. Add it as the repository's Actions secret **`NPM_TOKEN`**. Set
+   an expiry and replace the secret before the token expires. The package must
+   allow token publishing. See [npm's token setup documentation](https://docs.npmjs.com/creating-and-viewing-access-tokens/).
+4. Commit and push the workflow and package files before pushing a release tag.
+   Restrict creation of `v*` tags to release maintainers in repository settings.
+
+After the first manual publication, release the next version from a clean
+checkout:
 
 ```sh
-pi install git:forge.jde.nz/YOUR-ACCOUNT/pi-discrimin@v0.1.0
+npm version patch
+git push origin main
+git push origin "v$(node -p 'require("./package.json").version')"
 ```
 
-For GitHub:
+`npm version` commits the version change and creates its tag. Use `minor`,
+`major`, or an explicit version instead of `patch` when appropriate. Never
+reuse an already-published version. If a release fails because of a missing or
+expired secret, fix the secret and rerun the failed workflow.
+
+Forgejo is not an [npm trusted-publishing provider](https://docs.npmjs.com/trusted-publishers/),
+so this workflow uses a token and does not request provenance. npm currently
+[plans to remove direct token publishing in January 2027](https://docs.npmjs.com/about-access-tokens/).
+Before then, move publishing to a supported hosted CI provider (for example,
+a public GitHub mirror with trusted publishing), or adopt npm's staged
+publishing flow, which requires a maintainer to approve each release.
+
+The repository currently has no dependency lockfile, so CI uses `npm install`.
+Commit an npm-generated `package-lock.json` and change that step to `npm ci`
+when establishing a reproducible dependency baseline.
+
+### Git: share before publishing to npm
+
+Once the source is pushed and tagged in the public repository:
 
 ```sh
-pi install git:github.com/YOUR-ACCOUNT/pi-discrimin@v0.1.0
+pi install git:forge.jde.nz/public/pi-discrimin@v0.1.0
 ```
 
 Private repositories require the user's Git credentials. A public repository is
