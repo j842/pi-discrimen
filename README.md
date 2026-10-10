@@ -14,7 +14,7 @@ Requires Pi **1.0.4 or newer** and Node **22.19 or newer**. Older
 
 ## Install and connect
 
-Once the corrected package name is published to npm:
+Install from npm:
 
 ```sh
 pi install npm:pi-discrimen
@@ -95,8 +95,8 @@ until you unset them.
 
 ## Migrating from the misspelled package
 
-The initial prototype was published as `pi-discrimin`. After `pi-discrimen` is
-published, replace an npm installation with:
+The initial prototype was published as `pi-discrimin`. Replace an npm
+installation with:
 
 ```sh
 pi remove npm:pi-discrimin
@@ -130,16 +130,14 @@ terminal.
 
 ### npm: easiest for users
 
-Publish under the corrected name `pi-discrimen`. npm treats it as a separate
-package from the prototype, so the first publication establishes ownership of
-this name. Once published, users install it with:
+The package is published as `pi-discrimen`. Users install it with:
 
 ```sh
 pi install npm:pi-discrimen
 ```
 
 Users with an unpinned installation run `pi update --extensions`. For reproducible
-installs, use `pi install npm:pi-discrimen@0.1.0`; a pinned installation stays on
+installs, use `pi install npm:pi-discrimen@0.1.1`; a pinned installation stays on
 that version until its package specification is changed.
 
 ### CI releases from GitHub
@@ -197,7 +195,8 @@ git push origin main
 git push origin "v$(node -p 'require("./package.json").version')"
 ```
 
-`npm version` commits the version change and creates its tag. Use `minor`,
+`npm version` updates the package and extension manifest together, commits the
+version change, and creates its tag. Use `minor`,
 `major`, or an explicit version instead of `patch` when appropriate. Never
 reuse an already-published version. Release tags must exactly match
 `package.json`, for example `v0.1.1` for version `0.1.1`. If npm rejects the OIDC
@@ -215,10 +214,10 @@ when establishing a reproducible dependency baseline.
 
 ### Install directly from GitHub
 
-Once the source is pushed and tagged in the public repository:
+Install a tagged release from the public repository:
 
 ```sh
-pi install git:github.com/j842/pi-discrimen@v0.1.0
+pi install git:github.com/j842/pi-discrimen@v0.1.1
 ```
 
 Private repositories require the user's Git credentials. A public repository is
@@ -228,12 +227,12 @@ package. A tagged installation stays pinned to that tag.
 
 ### Downloadable archive
 
-`npm pack` creates `pi-discrimen-0.1.0.tgz`. Share that file; recipients extract
+`npm pack` creates `pi-discrimen-0.1.1.tgz`. Share that file; recipients extract
 it into a permanent directory and install the extracted package by local path:
 
 ```sh
 mkdir pi-discrimen
-tar -xzf pi-discrimen-0.1.0.tgz -C pi-discrimen --strip-components=1
+tar -xzf pi-discrimen-0.1.1.tgz -C pi-discrimen --strip-components=1
 pi install ./pi-discrimen
 ```
 

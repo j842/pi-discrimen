@@ -1,6 +1,6 @@
 {
   "name": "pi-discrimen",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Discrimen auto-routing, live model discovery, and backend visibility for Pi coding agent.",
   "type": "module",
   "license": "MIT",
@@ -9,11 +9,29 @@
     "url": "git+https://github.com/j842/pi-discrimen.git"
   },
   "homepage": "https://github.com/j842/pi-discrimen",
-  "bugs": { "url": "https://github.com/j842/pi-discrimen/issues" },
-  "keywords": ["pi-package", "pi-extension", "discrimen", "llm-router"],
-  "files": ["src", "README.md", "LICENSE", "extension-manifest.json"],
-  "pi": { "extensions": ["./src/index.ts"] },
-  "engines": { "node": ">=22.19.0" },
+  "bugs": {
+    "url": "https://github.com/j842/pi-discrimen/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "discrimen",
+    "llm-router"
+  ],
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "extension-manifest.json"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-coding-agent": "*"
@@ -28,7 +46,10 @@
     "check": "tsc --noEmit",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "verify": "npm run check && npm test",
+    "version": "node scripts/sync-version.mjs && git add extension-manifest.json",
     "prepublishOnly": "npm run verify"
   },
-  "publishConfig": { "access": "public" }
+  "publishConfig": {
+    "access": "public"
+  }
 }
