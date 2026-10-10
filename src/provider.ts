@@ -4,7 +4,7 @@ import { connectionFrom, credentialFor, discoverModels, fallbackModel, normalize
 
 export interface ProviderOptions { env?: Environment; fetcher?: typeof fetch; now?: () => number }
 
-export function createDiscriminProvider(options: ProviderOptions = {}): Provider<"openai-completions"> {
+export function createDiscrimenProvider(options: ProviderOptions = {}): Provider<"openai-completions"> {
   const env = options.env ?? ((name: string) => process.env[name]);
   const now = options.now ?? Date.now;
   let models: RouterModel[] = [fallbackModel()];
@@ -16,16 +16,16 @@ export function createDiscriminProvider(options: ProviderOptions = {}): Provider
   };
   const provider = createProvider<"openai-completions">({
     id: PROVIDER,
-    name: "Discrimin",
+    name: "Discrimen",
     models: [],
     // Pi supplies this module to installed extensions, including standalone
     // archives. Direct dynamic imports of /api/* require a local node_modules.
     api: openAICompletionsApi(),
     auth: {
       apiKey: {
-        name: "Discrimin router API key",
+        name: "Discrimen router API key",
         async login(interaction) {
-          const baseUrl = normalizeUrl(await interaction.prompt({ type: "text", message: "Router URL (root or /v1)", placeholder: await env("DISCRIMIN_URL") ?? "https://router.example.com" }));
+          const baseUrl = normalizeUrl(await interaction.prompt({ type: "text", message: "Router URL (root or /v1)", placeholder: await env("DISCRIMEN_URL") ?? "https://router.example.com" }));
           const key = await interaction.prompt({ type: "secret", message: "Client API key" });
           const connection = await connectionFrom(credentialFor({ baseUrl, apiKey: key }), env);
           if (!connection) throw new Error("An API key is required.");
@@ -34,13 +34,13 @@ export function createDiscriminProvider(options: ProviderOptions = {}): Provider
           // Pi commits the credential after login returns. refreshModels publishes
           // this verified catalogue once that credential becomes effective.
           cache = result;
-          interaction.notify({ type: "info", message: `Connected: ${result.models.length} models. Use /discrimin auto or choose a model with /model.` });
+          interaction.notify({ type: "info", message: `Connected: ${result.models.length} models. Use /discrimen auto or choose a model with /model.` });
           return credentialFor(connection);
         },
         async resolve({ credential, ctx, signal }) {
           signal.throwIfAborted();
           const connection = await connectionFrom(credential, (name) => ctx.env(name));
-          return connection ? { auth: { apiKey: connection.apiKey, baseUrl: connection.baseUrl }, source: credential?.key ? "Stored Discrimin key" : "DISCRIMIN_API_KEY" } : undefined;
+          return connection ? { auth: { apiKey: connection.apiKey, baseUrl: connection.baseUrl }, source: credential?.key ? "Stored Discrimen key" : "DISCRIMEN_API_KEY" } : undefined;
         },
       },
     },

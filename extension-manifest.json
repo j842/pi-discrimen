@@ -1,10 +1,10 @@
 {
-  "id": "pi-discrimin",
-  "name": "Discrimin",
+  "id": "pi-discrimen",
+  "name": "Discrimen",
   "version": "0.1.0",
   "description": "Connect Pi to a Discrimen router and show the backend serving each response.",
   "provides": {
-    "commands": ["discrimin"],
+    "commands": ["discrimen"],
     "hooks": ["session_start", "model_select", "before_provider_request", "after_provider_response"]
   }
 }

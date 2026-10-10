@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createModels, type Credential, type RefreshModelsContext } from "@earendil-works/pi-ai";
-import { createDiscriminProvider, primeProvider } from "../src/provider.ts";
+import { createDiscrimenProvider, primeProvider } from "../src/provider.ts";
 import { credentialFor } from "../src/router.ts";
 
 const credential = credentialFor({ baseUrl: "http://router/v1", apiKey: "key" });
@@ -14,7 +14,7 @@ test("native login asks for a masked key, validates before returning a credentia
   let requests = 0;
   const prompts: string[] = [];
   const notifications: string[] = [];
-  const provider = createDiscriminProvider({ env: () => undefined, fetcher: async () => { requests++; return Response.json({ data: [{ id: "default" }, { id: "qwen" }] }); } });
+  const provider = createDiscrimenProvider({ env: () => undefined, fetcher: async () => { requests++; return Response.json({ data: [{ id: "default" }, { id: "qwen" }] }); } });
   const result = await provider.auth.apiKey!.login!({
     signal: new AbortController().signal,
     async prompt(prompt) { prompts.push(prompt.type); return prompt.type === "secret" ? "key" : "http://router"; },
@@ -29,33 +29,33 @@ test("native login asks for a masked key, validates before returning a credentia
 });
 
 test("failed and cancelled login never returns credentials", async () => {
-  const provider = createDiscriminProvider({ env: () => undefined, fetcher: async () => new Response("bad", { status: 403 }) });
+  const provider = createDiscrimenProvider({ env: () => undefined, fetcher: async () => new Response("bad", { status: 403 }) });
   await assert.rejects(provider.auth.apiKey!.login!({ signal: new AbortController().signal, prompt: async (prompt) => prompt.type === "secret" ? "key" : "http://router", notify() {} }), /authentication failed/);
   await assert.rejects(provider.auth.apiKey!.login!({ signal: new AbortController().signal, prompt: async () => { throw new Error("cancelled"); }, notify() {} }), /cancelled/);
   assert.deepEqual(provider.getModels().map((model) => model.id), ["default"]);
 });
 
 test("Pi's model runtime persists the native login and resolves the saved endpoint", async () => {
-  const provider = createDiscriminProvider({ env: () => undefined, fetcher: async () => Response.json({ data: [{ id: "default" }, { id: "saved-model" }] }) });
+  const provider = createDiscrimenProvider({ env: () => undefined, fetcher: async () => Response.json({ data: [{ id: "default" }, { id: "saved-model" }] }) });
   const runtime = createModels({ authContext: { env: async () => undefined, fileExists: async () => false } });
   runtime.setProvider(provider);
-  await runtime.login("discrimin", "api_key", {
+  await runtime.login("discrimen", "api_key", {
     prompt: async (prompt) => prompt.type === "secret" ? "saved-key" : "https://saved.example/prefix",
     notify() {},
   });
-  const result = await runtime.refresh({ providers: ["discrimin"], allowNetwork: false });
+  const result = await runtime.refresh({ providers: ["discrimen"], allowNetwork: false });
   assert.equal(result.errors.size, 0);
-  assert.deepEqual((await runtime.getAuth("discrimin"))?.auth, { apiKey: "saved-key", baseUrl: "https://saved.example/prefix/v1" });
-  assert.ok(runtime.getModel("discrimin", "saved-model"));
-  await runtime.logout("discrimin");
-  assert.equal(await runtime.getAuth("discrimin"), undefined);
+  assert.deepEqual((await runtime.getAuth("discrimen"))?.auth, { apiKey: "saved-key", baseUrl: "https://saved.example/prefix/v1" });
+  assert.ok(runtime.getModel("discrimen", "saved-model"));
+  await runtime.logout("discrimen");
+  assert.equal(await runtime.getAuth("discrimen"), undefined);
 });
 
 test("discovery refreshes additions/removals, caches briefly, and retains a good catalogue during outages", async () => {
   let body = [{ id: "default" }, { id: "old" }];
   let calls = 0;
   let failing = false;
-  const provider = createDiscriminProvider({ env: () => undefined, fetcher: async () => {
+  const provider = createDiscrimenProvider({ env: () => undefined, fetcher: async () => {
     calls++;
     if (failing) throw new TypeError("network down");
     return Response.json({ data: body });
@@ -72,7 +72,7 @@ test("discovery refreshes additions/removals, caches briefly, and retains a good
 });
 
 test("switching router or logging out clears the previous fleet", async () => {
-  const provider = createDiscriminProvider({ env: () => undefined, fetcher: async () => Response.json({ data: [{ id: "default" }, { id: "private-model" }] }) });
+  const provider = createDiscrimenProvider({ env: () => undefined, fetcher: async () => Response.json({ data: [{ id: "default" }, { id: "private-model" }] }) });
   await primeProvider(provider, credential);
   await provider.refreshModels!(refreshContext({ credential: credentialFor({ baseUrl: "http://other/v1", apiKey: "other" }), allowNetwork: false }));
   assert.deepEqual(provider.getModels().map((model) => model.id), ["default"]);
@@ -82,13 +82,13 @@ test("switching router or logging out clears the previous fleet", async () => {
 });
 
 test("a superseded refresh cannot publish its result", async () => {
-  const provider = createDiscriminProvider({ env: () => undefined, fetcher: async () => Response.json({ data: [{ id: "default" }, { id: "new" }] }) });
+  const provider = createDiscrimenProvider({ env: () => undefined, fetcher: async () => Response.json({ data: [{ id: "default" }, { id: "new" }] }) });
   await provider.refreshModels!(refreshContext({ publish: async () => false }));
   assert.deepEqual(provider.getModels().map((model) => model.id), ["default"]);
 });
 
 test("request authentication sends the effective key and URL, and is unavailable before setup", async () => {
-  const provider = createDiscriminProvider({ env: () => undefined });
+  const provider = createDiscrimenProvider({ env: () => undefined });
   const ctx = { env: async () => undefined, fileExists: async () => false };
   const signal = new AbortController().signal;
   assert.equal(await provider.auth.apiKey!.resolve({ ctx, signal }), undefined);

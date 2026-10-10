@@ -1,0 +1,46 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck and test
+        run: npm run verify
+
+      - name: Pack and test the release archive
+        run: |
+          package_dir=$(mktemp -d)
+          npm pack --json --pack-destination "$package_dir" > "$package_dir/metadata.json"
+          package_file=$(node --input-type=module -e 'import { readFileSync } from "node:fs"; console.log(JSON.parse(readFileSync(process.argv[1], "utf8"))[0].filename)' "$package_dir/metadata.json")
+          tar -xzf "$package_dir/$package_file" -C "$package_dir"
+          PI_DISCRIMEN_PACKAGE_UNDER_TEST="$package_dir/package" \
+            node --experimental-strip-types --test test/pi.test.ts

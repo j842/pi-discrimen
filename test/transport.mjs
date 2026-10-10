@@ -5,7 +5,7 @@ export default function installTransport() {
 globalThis.fetch = async (input, init) => {
   const request = new Request(input, init);
   const url = new URL(request.url);
-  if (url.origin !== "https://discrimin.test") throw new TypeError("Network disabled in fixture");
+  if (url.origin !== "https://discrimen.test") throw new TypeError("Network disabled in fixture");
   if (request.headers.get("authorization") !== "Bearer test-client-key") return new Response("", { status: 401 });
   if (url.pathname === "/v1/models") {
     return Response.json({ data: [

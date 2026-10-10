@@ -11,11 +11,11 @@ import { test } from "node:test";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 test("real Pi loads the package, discovers models, streams a tool round trip, and updates its footer", { timeout: 60_000 }, async () => {
-  const work = await mkdtemp(join(tmpdir(), "pi-discrimin-test-"));
+  const work = await mkdtemp(join(tmpdir(), "pi-discrimen-test-"));
   try {
     // Exercise installation without the development node_modules tree on every run.
-    const extensionPath = process.env.PI_DISCRIMIN_PACKAGE_UNDER_TEST ?? join(work, "package");
-    if (!process.env.PI_DISCRIMIN_PACKAGE_UNDER_TEST) {
+    const extensionPath = process.env.PI_DISCRIMEN_PACKAGE_UNDER_TEST ?? join(work, "package");
+    if (!process.env.PI_DISCRIMEN_PACKAGE_UNDER_TEST) {
       await mkdir(extensionPath);
       const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
       for (const path of [...manifest.files, "package.json"]) {
@@ -33,7 +33,7 @@ export default function(pi) {
 }`);
     const packagePath = await realpath(join(root, "node_modules/@earendil-works/pi-coding-agent"));
     const cli = join(packagePath, "dist/bundle/cli.js");
-    const env = { ...process.env, PI_CODING_AGENT_DIR: join(work, "agent"), DISCRIMIN_URL: "https://discrimin.test", DISCRIMIN_API_KEY: "test-client-key", NO_COLOR: "1" };
+    const env = { ...process.env, PI_CODING_AGENT_DIR: join(work, "agent"), DISCRIMEN_URL: "https://discrimen.test", DISCRIMEN_API_KEY: "test-client-key", NO_COLOR: "1" };
     const runPi = async (args: string[]) => {
       const outFile = join(work, "stdout.txt"), errFile = join(work, "stderr.txt");
       const out = openSync(outFile, "w"), err = openSync(errFile, "w");
@@ -47,10 +47,10 @@ export default function(pi) {
       assert.doesNotMatch(stderr, /Error loading extension|Failed to load extension/);
       return { stdout, stderr };
     };
-    const listed = await runPi(["--list-models", "discrimin"]);
+    const listed = await runPi(["--list-models", "discrimen"]);
     assert.match(listed.stdout, /test-qwen/, listed.stderr || "Pi returned no model listing");
     assert.match(listed.stdout, /default/);
-    const answered = await runPi(["-e", observer, "--provider", "discrimin", "--model", "default", "--tools", "read", "--no-session", "--print", "Read the fixture."]);
+    const answered = await runPi(["-e", observer, "--provider", "discrimen", "--model", "default", "--tools", "read", "--no-session", "--print", "Read the fixture."]);
     assert.match(answered.stdout, /Kia ora — fixture read successfully/);
     const requests = (await readFile(join(work, "requests.jsonl"), "utf8")).trim().split("\n").map((line) => JSON.parse(line));
     assert.equal(requests.length, 2);
@@ -63,8 +63,8 @@ export default function(pi) {
     const toolResult = requests[1].messages.find((message: any) => message.role === "tool");
     assert.match(JSON.stringify(toolResult), /harmless local test fixture/);
     const statuses = await readFile(join(work, "statuses.jsonl"), "utf8");
-    assert.match(statuses, /Discrimin · Auto → Fixture A/);
-    assert.match(statuses, /Discrimin · Auto → Fixture B/);
+    assert.match(statuses, /Discrimen · Auto → Fixture A/);
+    assert.match(statuses, /Discrimen · Auto → Fixture B/);
     assert.doesNotMatch(statuses, /test-client-key/);
   } finally {
     await rm(work, { recursive: true, force: true });

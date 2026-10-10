@@ -1,31 +1,31 @@
-# pi-discrimin
+# pi-discrimen
 
 Connect [Pi](https://pi.dev/) to a **Discrimen** router. Use automatic routing,
 choose an underlying model from Pi's model picker, and see which model serves
 each response in the footer.
 
 ```text
-Discrimin · Auto → Qwen3.8 Flash Next
+Discrimen · Auto → Qwen3.8 Flash Next
 ```
 
-The package and provider are named **discrimin**; the router project is named
-**Discrimen**. Requires Pi **1.0.4 or newer** and Node **22.19 or newer**. Older
+The package is **pi-discrimen**, and the provider and router are **Discrimen**.
+Requires Pi **1.0.4 or newer** and Node **22.19 or newer**. Older
 `@mariozechner/pi-coding-agent` and GSD builds are not supported by this release.
 
 ## Install and connect
 
-Once the package is published to npm:
+Once the corrected package name is published to npm:
 
 ```sh
-pi install npm:pi-discrimin
+pi install npm:pi-discrimen
 pi
 ```
 
 Inside Pi:
 
 ```text
-/login discrimin
-/discrimin auto
+/login discrimen
+/discrimen auto
 ```
 
 Login asks for the router URL and a **client API key**. Paste either the root URL
@@ -34,8 +34,8 @@ The extension verifies access to `/v1/models` before Pi saves the credential.
 Pi stores the key and its associated URL in `~/.pi/agent/auth.json`, respecting
 `PI_CODING_AGENT_DIR` if set. It does not put secrets in project settings.
 
-`/discrimin auto` selects automatic routing for the current session. Open
-`/model`, select **Discrimin — Auto**, and press **Ctrl+S** to make it the default
+`/discrimen auto` selects automatic routing for the current session. Open
+`/model`, select **Discrimen — Auto**, and press **Ctrl+S** to make it the default
 for new sessions. The extension leaves your existing default alone until you
 save a new one.
 
@@ -47,12 +47,12 @@ are unnecessary for this integration.
 
 | Command | Action |
 | --- | --- |
-| `/login discrimin` | Connect, change router, or replace the API key |
-| `/discrimin auto` | Select the router's `default` model |
+| `/login discrimen` | Connect, change router, or replace the API key |
+| `/discrimen auto` | Select the router's `default` model |
 | `/model` | Choose Auto, Expert, or an underlying model |
-| `/discrimin refresh` | Fetch the latest catalogue, including additions and removals |
-| `/discrimin status` | Show the configured URL and current catalogue size |
-| `/logout` | Remove the saved Discrimin credential through Pi's provider menu |
+| `/discrimen refresh` | Fetch the latest catalogue, including additions and removals |
+| `/discrimen status` | Show the configured URL and current catalogue size |
+| `/logout` | Remove the saved Discrimen credential through Pi's provider menu |
 
 The catalogue is discovered at startup and through Pi's provider refresh flow.
 Successful results are reused in memory for up to 60 seconds; the refresh command
@@ -80,29 +80,46 @@ that serving the models is free.
 
 ## Environment-only setup
 
-For CI or a temporary shell session, supply `DISCRIMIN_URL` and
-`DISCRIMIN_API_KEY` through your environment or secret manager:
+For CI or a temporary shell session, supply `DISCRIMEN_URL` and
+`DISCRIMEN_API_KEY` through your environment or secret manager:
 
 ```sh
-export DISCRIMIN_URL=https://router.example.com
-# Set DISCRIMIN_API_KEY using your secret manager.
-pi --provider discrimin --model default
+export DISCRIMEN_URL=https://router.example.com
+# Set DISCRIMEN_API_KEY using your secret manager.
+pi --provider discrimen --model default
 ```
 
-A saved login takes precedence. Log out of Discrimin before changing connections
+A saved login takes precedence. Log out of Discrimen before changing connections
 using environment variables. Environment credentials remain usable after logout
 until you unset them.
+
+## Migrating from the misspelled package
+
+The initial prototype was published as `pi-discrimin`. After `pi-discrimen` is
+published, replace an npm installation with:
+
+```sh
+pi remove npm:pi-discrimin
+pi install npm:pi-discrimen
+```
+
+If you installed a pinned version or Git source, use `pi list` to find the old
+source and pass that exact source to `pi remove`. Restart Pi, run
+`/login discrimen`, then `/discrimen auto`, and save your new default in `/model`.
+Saved credentials under the old `discrimin` provider are not migrated. For
+environment setup, rename `DISCRIMIN_URL` and `DISCRIMIN_API_KEY` to
+`DISCRIMEN_URL` and `DISCRIMEN_API_KEY`.
 
 ## Try a local checkout
 
 ```sh
-pi -e /path/to/pi-discrimin
+pi -e /path/to/pi-discrimen
 ```
 
 To keep it installed:
 
 ```sh
-pi install /path/to/pi-discrimin
+pi install /path/to/pi-discrimen
 ```
 
 Pi supplies the runtime dependencies and loads the TypeScript source directly.
@@ -113,59 +130,66 @@ terminal.
 
 ### npm: easiest for users
 
-The package is prepared for public npm publishing under `pi-discrimin`.
-Publishing requires an npm account with permission to use the name. If the name
-is unavailable, use a scope such as `@your-account/pi-discrimin` and adjust the
-install command. The `pi-package` keyword makes a published package eligible
-for [Pi's package gallery](https://pi.dev/packages).
-
-From the package directory:
+Publish under the corrected name `pi-discrimen`. npm treats it as a separate
+package from the prototype, so the first publication establishes ownership of
+this name. Once published, users install it with:
 
 ```sh
-npm install
-npm run verify
-npm pack --dry-run
-npm login
-npm publish --access public
+pi install npm:pi-discrimen
 ```
 
-Users then run:
-
-```sh
-pi install npm:pi-discrimin
-```
-
-For automated updates, use the release workflow below. Users
-with an unpinned installation run `pi update --extensions`. For reproducible
-installs, use `pi install npm:pi-discrimin@0.1.0`; a pinned installation stays on
+Users with an unpinned installation run `pi update --extensions`. For reproducible
+installs, use `pi install npm:pi-discrimen@0.1.0`; a pinned installation stays on
 that version until its package specification is changed.
 
-### CI releases on forge.jde.nz
+### CI releases from GitHub
 
-`.gitea/workflows/publish.yaml` tests pushes to `main`, pull requests, and `v*`
-tags using Node 24. Release tags must exactly match `package.json`: `v0.1.0`
-for version `0.1.0`. The workflow typechecks, runs the tests, packs the package,
-and runs the Pi integration test against the extracted archive before publishing
-that same archive. Stable versions use npm's `latest` channel; prereleases such
-as `v0.2.0-beta.1` use `next`. Branch pushes and pull requests only verify.
+[j842/pi-discrimen](https://github.com/j842/pi-discrimen) is the primary source
+repository and issue tracker. `.github/workflows/ci.yaml` verifies pushes to
+`main` and pull requests. `.github/workflows/publish.yaml` publishes `v*` tags
+using npm **Trusted Publishing**, with short-lived GitHub OIDC credentials.
+No npm token or repository secret is required.
+
+The release workflow uses GitHub-hosted Ubuntu runners, Node 24, and an npm CLI
+with Trusted Publishing support. It checks the release tag and repository
+metadata, typechecks, runs the tests, packs the package, and tests the extracted
+archive with the real Pi CLI before publishing that same archive. Stable
+versions use npm's `latest` channel; prereleases such as `v0.2.0-beta.1` use
+`next`. npm adds provenance automatically.
 
 One-time setup:
 
-1. Enable Actions for `public/pi-discrimin` and make an `ubuntu-latest` runner
-   available to the repository.
-2. For a new npm package, first publish `0.1.0` using the manual commands above
-   to claim the name under your npm account. This lets you restrict the CI token
-   to this package.
-3. Create an npm **granular access token**, with **Read and write (publish and
-   stage)** access to `pi-discrimin` and **Bypass 2FA** enabled for unattended
-   publishing. Add it as the repository's Actions secret **`NPM_TOKEN`**. Set
-   an expiry and replace the secret before the token expires. The package must
-   allow token publishing. See [npm's token setup documentation](https://docs.npmjs.com/creating-and-viewing-access-tokens/).
-4. Commit and push the workflow and package files before pushing a release tag.
-   Restrict creation of `v*` tags to release maintainers in repository settings.
+1. Push the source and workflow files to `https://github.com/j842/pi-discrimen.git`
+   and enable GitHub Actions. Keep `package.json`'s `repository.url` set to
+   `git+https://github.com/j842/pi-discrimen.git`; npm checks that it matches.
+2. Publish the new package name once from a terminal using your npm account's
+   2FA (no bypass token is needed): `npm login`, then
+   `npm publish --access public`. Complete the authentication challenge.
+   Skip this step if `pi-discrimen` is already published under your account.
+3. Open [the npm package settings](https://www.npmjs.com/package/pi-discrimen/access),
+   find **Trusted Publisher**, and select **GitHub Actions**. Enter:
 
-After the first manual publication, release the next version from a clean
-checkout:
+   | Setting | Value |
+   | --- | --- |
+   | Organization or user | `j842` |
+   | Repository | `pi-discrimen` |
+   | Workflow filename | `publish.yaml` |
+   | Environment name | Leave blank |
+   | Allowed actions | Enable direct publishing with `npm publish` |
+
+   Enter only the workflow filename, without `.github/workflows/`. Allowing
+   only staged publishing will not authorize this workflow's `npm publish`.
+4. Complete the first CI publication within two days of creating the trusted
+   publisher; npm expires an unused configuration after that interval.
+5. After a successful trusted publication, npm's **Publishing access** setting
+   can be changed to **Require two-factor authentication and disallow tokens**.
+   Trusted Publishing continues working. Revoke any unused npm publishing token
+   and remove the old `NPM_TOKEN` secret if one was created.
+
+See [npm's Trusted Publishing guide](https://docs.npmjs.com/trusted-publishers/).
+Restrict creation of `v*` tags to release maintainers using GitHub repository
+rules. After the first manual publication of `pi-discrimen@0.1.0`, release the
+next version from a clean checkout with `origin` pointing to GitHub:
 
 ```sh
 npm version patch
@@ -175,26 +199,26 @@ git push origin "v$(node -p 'require("./package.json").version')"
 
 `npm version` commits the version change and creates its tag. Use `minor`,
 `major`, or an explicit version instead of `patch` when appropriate. Never
-reuse an already-published version. If a release fails because of a missing or
-expired secret, fix the secret and rerun the failed workflow.
+reuse an already-published version. Release tags must exactly match
+`package.json`, for example `v0.1.1` for version `0.1.1`. If npm rejects the OIDC
+authentication, check the exact publisher fields and allowed actions above;
+recreate an expired publisher configuration and rerun the failed workflow.
 
-Forgejo is not an [npm trusted-publishing provider](https://docs.npmjs.com/trusted-publishers/),
-so this workflow uses a token and does not request provenance. npm currently
-[plans to remove direct token publishing in January 2027](https://docs.npmjs.com/about-access-tokens/).
-Before then, move publishing to a supported hosted CI provider (for example,
-a public GitHub mirror with trusted publishing), or adopt npm's staged
-publishing flow, which requires a maintainer to approve each release.
+For a manual publication, enable account 2FA on npm, run `npm login`, then
+`npm publish --access public` and complete the authentication challenge.
+Logging in alone is insufficient without 2FA. See
+[npm's 2FA setup instructions](https://docs.npmjs.com/configuring-two-factor-authentication/).
 
 The repository currently has no dependency lockfile, so CI uses `npm install`.
 Commit an npm-generated `package-lock.json` and change that step to `npm ci`
 when establishing a reproducible dependency baseline.
 
-### Git: share before publishing to npm
+### Install directly from GitHub
 
 Once the source is pushed and tagged in the public repository:
 
 ```sh
-pi install git:forge.jde.nz/public/pi-discrimin@v0.1.0
+pi install git:github.com/j842/pi-discrimen@v0.1.0
 ```
 
 Private repositories require the user's Git credentials. A public repository is
@@ -204,13 +228,13 @@ package. A tagged installation stays pinned to that tag.
 
 ### Downloadable archive
 
-`npm pack` creates `pi-discrimin-0.1.0.tgz`. Share that file; recipients extract
+`npm pack` creates `pi-discrimen-0.1.0.tgz`. Share that file; recipients extract
 it into a permanent directory and install the extracted package by local path:
 
 ```sh
-mkdir pi-discrimin
-tar -xzf pi-discrimin-0.1.0.tgz -C pi-discrimin --strip-components=1
-pi install ./pi-discrimin
+mkdir pi-discrimen
+tar -xzf pi-discrimen-0.1.0.tgz -C pi-discrimen --strip-components=1
+pi install ./pi-discrimen
 ```
 
 Local installations keep referring to that directory, so leave it in place.

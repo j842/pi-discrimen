@@ -14,7 +14,7 @@ test("stored credentials keep their router URL and take precedence over environm
   const stored = credentialFor({ baseUrl: "https://stored.example/v1", apiKey: "stored-key" });
   assert.deepEqual(await connectionFrom(stored, async () => "environment-value"), { baseUrl: "https://stored.example/v1", apiKey: "stored-key" });
   assert.equal(await connectionFrom(undefined, () => undefined), undefined);
-  assert.deepEqual(await connectionFrom(undefined, (key) => ({ DISCRIMIN_URL: "https://env.example", DISCRIMIN_API_KEY: "env-key" })[key]), { baseUrl: "https://env.example/v1", apiKey: "env-key" });
+  assert.deepEqual(await connectionFrom(undefined, (key) => ({ DISCRIMEN_URL: "https://env.example", DISCRIMEN_API_KEY: "env-key" })[key]), { baseUrl: "https://env.example/v1", apiKey: "env-key" });
 });
 
 test("catalogue maps measured limits and capabilities; Auto leaves thinking to router", () => {
@@ -70,9 +70,9 @@ test("discovery responds to cancellation and timeout", async () => {
 });
 
 test("footer prefers the human name, handles missing headers and failures, strips terminal escapes", () => {
-  assert.equal(responseStatus({ "X-LLM-Backend-Model-Name": "Qwen", "X-LLM-Backend-Model": "path/model.gguf" }, "default", 200), "Discrimin · Auto → Qwen");
-  assert.equal(responseStatus({}, "default", 200), "Discrimin · Auto → backend unreported");
-  assert.equal(responseStatus({ "x-llm-backend-model": "ornith" }, "ornith", 503), "Discrimin · ornith · HTTP 503 · ornith");
+  assert.equal(responseStatus({ "X-LLM-Backend-Model-Name": "Qwen", "X-LLM-Backend-Model": "path/model.gguf" }, "default", 200), "Discrimen · Auto → Qwen");
+  assert.equal(responseStatus({}, "default", 200), "Discrimen · Auto → backend unreported");
+  assert.equal(responseStatus({ "x-llm-backend-model": "ornith" }, "ornith", 503), "Discrimen · ornith · HTTP 503 · ornith");
   assert.equal(displayText("\x1b[31mQwen\x1b[0m\n\u202e"), "Qwen");
   assert.equal(displayText("x".repeat(200)).length, 72);
 });

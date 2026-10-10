@@ -1,6 +1,6 @@
 import type { ApiKeyCredential, Credential, Model } from "@earendil-works/pi-ai";
 
-export const PROVIDER = "discrimin";
+export const PROVIDER = "discrimen";
 export const DISCOVERY_TIMEOUT_MS = 8_000;
 export type RouterModel = Model<"openai-completions">;
 export type Environment = (name: string) => string | undefined | Promise<string | undefined>;
@@ -23,15 +23,15 @@ export function normalizeUrl(value: string): string {
 
 export async function connectionFrom(credential: Credential | undefined, env: Environment): Promise<Connection | undefined> {
   const stored = credential?.type === "api_key" ? credential : undefined;
-  const url = stored?.env?.DISCRIMIN_URL ?? await env("DISCRIMIN_URL");
-  const key = stored?.key ?? await env("DISCRIMIN_API_KEY");
+  const url = stored?.env?.DISCRIMEN_URL ?? await env("DISCRIMEN_URL");
+  const key = stored?.key ?? await env("DISCRIMEN_API_KEY");
   if (!url || !key?.trim()) return undefined;
   if (/[\r\n]/.test(key)) throw new Error("The API key must be a single line.");
   return { baseUrl: normalizeUrl(url), apiKey: key.trim() };
 }
 
 export function credentialFor(connection: Connection): ApiKeyCredential {
-  return { type: "api_key", key: connection.apiKey, env: { DISCRIMIN_URL: connection.baseUrl } };
+  return { type: "api_key", key: connection.apiKey, env: { DISCRIMEN_URL: connection.baseUrl } };
 }
 
 /** Server-provided text is untrusted terminal output. */
@@ -62,7 +62,7 @@ export function mapCatalogue(payload: unknown, baseUrl: string): RouterModel[] {
     const outputLimit = positiveInteger(entry.max_output_tokens) ?? positiveInteger(entry.max_tokens) ?? 8_192;
     models.set(entry.id, {
       id: entry.id,
-      name: entry.id === "default" ? "Discrimin — Auto" : entry.id === "expert" ? "Discrimin — Expert" : displayText(typeof entry.name === "string" ? entry.name : entry.id),
+      name: entry.id === "default" ? "Discrimen — Auto" : entry.id === "expert" ? "Discrimen — Expert" : displayText(typeof entry.name === "string" ? entry.name : entry.id),
       api: "openai-completions",
       provider: PROVIDER,
       baseUrl,
@@ -93,7 +93,7 @@ export async function discoverModels(connection: Connection, signal?: AbortSigna
       redirect: "error",
       signal: combined,
     });
-    if (response.status === 401 || response.status === 403) throw new Error("Router authentication failed. Run /login discrimin with a client API key.");
+    if (response.status === 401 || response.status === 403) throw new Error("Router authentication failed. Run /login discrimen with a client API key.");
     if (!response.ok) throw new Error(`Router model discovery failed (HTTP ${response.status}). Check the URL and router availability.`);
     let payload: unknown;
     try { payload = await response.json(); } catch {
