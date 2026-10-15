@@ -34,7 +34,7 @@ export default function(pi) {
   });
 }`);
     const packagePath = await realpath(join(root, "node_modules/@earendil-works/pi-coding-agent"));
-    const cli = join(packagePath, "dist/bundle/cli.js");
+    const cli = process.env.PI_DISCRIMEN_PI_CLI ?? join(packagePath, "dist/bundle/cli.js");
     const agentDir = join(work, "agent");
     await mkdir(agentDir);
     await writeFile(join(agentDir, "auth.json"), JSON.stringify({ discrimen: {
@@ -65,6 +65,7 @@ export default function(pi) {
       assert.equal(request.model, "default");
       assert.equal(request.stream, true);
       assert.equal(request.reasoning_effort, undefined);
+      assert.equal(request.fit_max_tokens, true);
       assert.ok(request.max_tokens > 0);
     }
     const toolResult = requests[1].messages.find((message: any) => message.role === "tool");
@@ -73,6 +74,53 @@ export default function(pi) {
     assert.match(statuses, /Discrimen · Auto → Fixture A/);
     assert.match(statuses, /Discrimen · Auto → Fixture B/);
     assert.doesNotMatch(statuses, /test-client-key/);
+    const timeoutValues = () => readFile(join(work, "timeouts.jsonl"), "utf8").then((text) => text.trim().split("\n").map((line) => JSON.parse(line)));
+    assert.deepEqual(await timeoutValues(), ["600", "600"]);
+
+    // No models.json or settings migration: updating the package supplies the
+    // Flash Next profile even when the live catalogue omits `thinking`.
+    const metadataObserver = join(work, "metadata.ts");
+    await writeFile(metadataObserver, `import { writeFileSync } from "node:fs";
+export default function(pi) {
+  pi.on("session_start", (_event, ctx) => {
+    writeFileSync(${JSON.stringify(join(work, "model.json"))}, JSON.stringify(ctx.model));
+  });
+}`);
+    for (const level of ["off", "medium"]) {
+      await runPi(["-e", metadataObserver, "--provider", "discrimen", "--model", "flashnext", "--thinking", level, "--tools", "read", "--no-session", "--print", "Read the fixture."]);
+      const model = JSON.parse(await readFile(join(work, "model.json"), "utf8"));
+      assert.equal(model.reasoning, true);
+      assert.equal(model.contextWindow - 16384, 229376);
+      assert.equal(model.maxTokens, 16384);
+    }
+    const qwenRequests = (await readFile(join(work, "requests.jsonl"), "utf8")).trim().split("\n").map((line) => JSON.parse(line)).slice(2);
+    assert.equal(qwenRequests.length, 4);
+    qwenRequests.forEach((request, index) => {
+      assert.equal(request.model, "flashnext");
+      assert.equal(request.max_tokens, 16384);
+      assert.equal(request.reasoning_effort, index < 2 ? "none" : "medium");
+      assert.equal(request.fit_max_tokens, true);
+    });
+
+    const settings = JSON.stringify({ httpIdleTimeoutMs: 900000, defaultProvider: "discrimen", defaultModel: "flashnext" });
+    const modelOverrides = JSON.stringify({ providers: { discrimen: { modelOverrides: { flashnext: {
+      maxTokens: 12000, contextWindow: 200000, samplingParams: { fit_max_tokens: false, temperature: 0.42 },
+    } } } } });
+    await writeFile(join(agentDir, "settings.json"), settings);
+    await writeFile(join(agentDir, "models.json"), modelOverrides);
+    await runPi(["-e", metadataObserver, "--thinking", "low", "--tools", "read", "--no-session", "--print", "Read the fixture."]);
+    const overridden = JSON.parse(await readFile(join(work, "model.json"), "utf8"));
+    assert.equal(overridden.maxTokens, 12000);
+    assert.equal(overridden.contextWindow, 200000);
+    const allRequests = (await readFile(join(work, "requests.jsonl"), "utf8")).trim().split("\n").map((line) => JSON.parse(line));
+    for (const request of allRequests.slice(-2)) {
+      assert.equal(request.max_tokens, 12000);
+      assert.equal(request.fit_max_tokens, false);
+      assert.equal(request.temperature, 0.42);
+    }
+    assert.deepEqual((await timeoutValues()).slice(-2), ["900", "900"]);
+    assert.equal(await readFile(join(agentDir, "settings.json"), "utf8"), settings);
+    assert.equal(await readFile(join(agentDir, "models.json"), "utf8"), modelOverrides);
   } finally {
     await rm(work, { recursive: true, force: true });
   }

@@ -1,5 +1,5 @@
 import { readStoredCredential, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createDiscrimenProvider, primeProvider } from "./provider.ts";
+import { createDiscrimenProvider, primeProvider, requestTimeoutMs } from "./provider.ts";
 import { displayText, PROVIDER } from "./router.ts";
 
 export function responseStatus(headers: Record<string, string>, selection: string, status: number): string {
@@ -12,7 +12,7 @@ export function responseStatus(headers: Record<string, string>, selection: strin
 }
 
 export default async function discrimen(pi: ExtensionAPI) {
-  const provider = createDiscrimenProvider();
+  const provider = createDiscrimenProvider({ requestTimeoutMs: (current) => requestTimeoutMs(current, pi.getSettings()) });
   let startupError: string | undefined;
   try { await primeProvider(provider, readStoredCredential(PROVIDER)); }
   catch (error) { startupError = error instanceof Error ? error.message : "Router discovery failed."; }

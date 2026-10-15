@@ -1,6 +1,6 @@
 {
   "name": "pi-discrimen",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Discrimen auto-routing, live model discovery, and backend visibility for Pi coding agent.",
   "type": "module",
   "license": "MIT",

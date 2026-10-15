@@ -42,6 +42,46 @@ test("missing limits use documented conservative defaults; duplicate models coll
   assert.throws(() => mapCatalogue({ data: [] }, ""), /no chat models/);
 });
 
+test("Flash Next gets thinking controls, 16K output and compaction headroom without a thinking feature flag", () => {
+  for (const entry of [
+    { id: "qwen3.8flashnextnvfp4" },
+    { id: "RadixArk/Qwen3.8-Flash-Next-NVFP4" },
+    { id: "flashnext", name: "Qwen3.8 Flash Next SGLang" },
+  ]) {
+    const [model] = mapCatalogue({ data: [{ ...entry, features: ["chat", "tools"], context_length: 262_144 }] }, "http://router/v1");
+    assert.equal(model.id, entry.id);
+    assert.equal(model.reasoning, true);
+    assert.equal(model.maxTokens, 16_384);
+    assert.equal(model.contextWindow - 16_384, 229_376);
+    assert.equal(model.thinkingLevelMap?.off, "none");
+    assert.equal(model.thinkingLevelMap?.minimal, "low");
+    assert.equal(model.thinkingLevelMap?.xhigh, null);
+    assert.equal(model.compat?.supportsReasoningEffort, true);
+    assert.equal(model.samplingParams?.fit_max_tokens, true);
+  }
+});
+
+test("Flash Next defaults respect server output limits, stay bounded on small workers and leave other families alone", () => {
+  const models = mapCatalogue({ data: [
+    { id: "default", name: "Qwen3.8 Flash Next", features: ["thinking"], context_length: 262_144 },
+    { id: "expert", name: "Qwen3.8 Flash Next", features: ["thinking"], context_length: 262_144 },
+    { id: "qwen3.8-27b", context_length: 262_144 },
+    { id: "qwen3.8-flash-next", context_length: 262_144, max_output_tokens: 4_096 },
+    { id: "tiny-qwen3.8-flash-next", context_length: 4_096 },
+  ] }, "http://router/v1");
+  for (const model of models) {
+    assert.ok(model.contextWindow > 0);
+    assert.ok(model.maxTokens <= model.contextWindow / 4);
+    assert.equal(model.samplingParams?.fit_max_tokens, true);
+    if (["default", "expert", "qwen3.8-27b"].includes(model.id)) {
+      assert.equal(model.contextWindow, 262_144);
+      assert.equal(model.reasoning, false);
+      assert.equal(model.maxTokens, 8_192);
+    }
+  }
+  assert.equal(models.find((model) => model.id === "qwen3.8-flash-next")?.maxTokens, 4_096);
+});
+
 test("discovery sends a bearer key, refuses redirects, and never echoes error bodies", async () => {
   const connection = { baseUrl: "https://router.example/v1", apiKey: "private-key" };
   const fetcher: typeof fetch = async (url, init) => {

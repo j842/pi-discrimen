@@ -11,11 +11,13 @@ globalThis.fetch = async (input, init) => {
     return Response.json({ data: [
       { id: "default", features: ["chat", "tools", "thinking"], context_length: 131072 },
       { id: "test-qwen", features: ["chat", "tools", "thinking"], context_length: 65536 },
+      { id: "flashnext", name: "Qwen3.8-Flash-Next-NVFP4 (SGLang)", features: ["chat", "tools"], context_length: 262144 },
     ] });
   }
   if (url.pathname !== "/v1/chat/completions") return new Response("", { status: 404 });
   const payload = await request.json();
   appendFileSync(process.cwd() + "/requests.jsonl", JSON.stringify(payload) + "\n");
+  appendFileSync(process.cwd() + "/timeouts.jsonl", JSON.stringify(request.headers.get("x-stainless-timeout")) + "\n");
   const second = payload.messages.some(message => message.role === "tool");
   const model = second ? "model-b" : "model-a";
   const frames = [];

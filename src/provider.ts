@@ -1,8 +1,23 @@
-import { createProvider, type Credential, type Provider, type RefreshModelsContext } from "@earendil-works/pi-ai";
+import { createProvider, type Credential, type Provider, type RefreshModelsContext, type StreamOptions } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import { connectionFrom, credentialFor, discoverModels, fallbackModel, normalizeUrl, PROVIDER, type Connection, type Environment, type RouterModel } from "./router.ts";
 
-export interface ProviderOptions { env?: Environment; fetcher?: typeof fetch }
+export const REQUEST_TIMEOUT_MS = 600_000;
+export interface ProviderOptions {
+  env?: Environment;
+  fetcher?: typeof fetch;
+  requestTimeoutMs?: (current: number | undefined) => number | undefined;
+}
+
+/** Replace Pi's injected five-minute default, retaining configured timeouts. */
+export function requestTimeoutMs(current: number | undefined, settings: {
+  httpIdleTimeoutMs?: number;
+  retry?: { provider?: { timeoutMs?: number } };
+}): number {
+  const configured = settings.retry?.provider?.timeoutMs ?? settings.httpIdleTimeoutMs;
+  if (configured !== undefined) return current ?? (configured === 0 ? 2_147_483_647 : configured);
+  return current === undefined || current === 300_000 ? REQUEST_TIMEOUT_MS : current;
+}
 
 export function createDiscrimenProvider(options: ProviderOptions = {}): Provider<"openai-completions"> {
   const env = options.env ?? ((name: string) => process.env[name]);
@@ -13,13 +28,22 @@ export function createDiscrimenProvider(options: ProviderOptions = {}): Provider
     const discovered = await discoverModels(connection, signal, options.fetcher);
     return { connection, models: discovered };
   };
+  const api = openAICompletionsApi();
+  const requestDefaults = <T extends StreamOptions>(request?: T) => ({
+    ...request,
+    timeoutMs: options.requestTimeoutMs?.(request?.timeoutMs) ?? request?.timeoutMs ?? REQUEST_TIMEOUT_MS,
+  });
   const provider = createProvider<"openai-completions">({
     id: PROVIDER,
     name: "Discrimen",
     models: [],
     // Pi supplies this module to installed extensions, including standalone
     // archives. Direct dynamic imports of /api/* require a local node_modules.
-    api: openAICompletionsApi(),
+    api: {
+      ...api,
+      stream: (model, context, request) => api.stream(model, context, requestDefaults(request)),
+      streamSimple: (model, context, request) => api.streamSimple(model, context, requestDefaults(request)),
+    },
     auth: {
       apiKey: {
         name: "Discrimen router API key",

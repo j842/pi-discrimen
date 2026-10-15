@@ -55,6 +55,11 @@ This updates your unpinned Pi packages, including `pi-discrimen`. Restart Pi or
 run `/reload` in an existing session to load the updated extension. Your saved
 Discrimen login is kept; you do not need to enter the router URL or API key again.
 
+From **0.1.3**, updating also supplies the [Flash Next defaults](#qwen38-flash-next-defaults)
+and the longer Discrimen request timeout. There is no setup script or settings
+migration to run on existing installations. Your saved startup model and
+thinking level stay as you chose them.
+
 If you installed a specific version, such as `npm:pi-discrimen@0.1.1`, it stays
 pinned. Switch to the latest release and receive future updates with:
 
@@ -119,6 +124,45 @@ Context limits come from `context_length`; missing limits use a conservative
 zero because the router catalogue does not provide prices; this is not a claim
 that serving the models is free.
 
+All Discrimen models default to `fit_max_tokens: true`. When a prompt and the
+requested output exceed a worker's context, a compatible router can clamp the
+output budget. This does not truncate history. Discrimen requests default to a
+600-second timeout instead of Pi's 300 seconds, so a cold prefill has longer to
+produce its first token. Explicit `httpIdleTimeoutMs`, provider retry timeouts
+and non-default request timeouts are honoured, including disabled timeouts.
+Discovery still has its separate eight-second timeout.
+
+### Qwen3.8 Flash Next defaults
+
+The provider recognises Qwen3.8 Flash Next from each live model's ID or display
+name, including short fleet aliases such as `flashnext`. It supplies these
+defaults even when the catalogue omits the `thinking` feature flag:
+
+| Behaviour | Default |
+| --- | --- |
+| Thinking controls | Off, minimal, low, medium and high |
+| Thinking off | Sends `reasoning_effort: "none"` explicitly |
+| Minimal thinking | Maps to the backend's `low` effort |
+| Maximum output | 16,384 tokens, reduced if the router advertises a smaller limit |
+| Extra context headroom | 16,384 tokens, capped at a quarter of a small context |
+
+The usable context is the router's `context_length` minus that extra headroom.
+For a 262,144-token worker Pi sees 245,760 usable tokens. With Pi's stock 16,384
+compaction reserve, compaction triggers above **229,376 tokens**. A larger
+configured reserve triggers earlier. Small contexts still cap output at a
+quarter of their usable window.
+
+Pi's `models.json` overrides take precedence over these defaults. Existing
+overrides remain in effect; remove individual overrides if you want the package
+defaults instead. The provider does not write `settings.json`, `models.json` or
+credentials to apply tuning. Temperature, top-p, cache warming and model cycling
+keep their existing settings. Auto and Expert keep router-controlled thinking
+and the router's full advertised context. Startup model selection is still yours
+to save through `/model`.
+
+Clabtree `web_search` and `web_fetch` are separate extensions and are not bundled
+in this router provider.
+
 ## Environment-only setup
 
 For CI or a temporary shell session, supply `DISCRIMEN_URL` and
@@ -178,7 +222,7 @@ pi install npm:pi-discrimen
 ```
 
 See [Update the extension](#update-the-extension) for upgrading an installation.
-For reproducible installs, use `pi install npm:pi-discrimen@0.1.2`; a pinned
+For reproducible installs, use `pi install npm:pi-discrimen@0.1.3`; a pinned
 installation stays on that version until its package specification is changed.
 
 ### CI releases from GitHub
@@ -240,7 +284,7 @@ git push origin "v$(node -p 'require("./package.json").version')"
 version change, and creates its tag. Use `minor`,
 `major`, or an explicit version instead of `patch` when appropriate. Never
 reuse an already-published version. Release tags must exactly match
-`package.json`, for example `v0.1.2` for version `0.1.2`. If npm rejects the OIDC
+`package.json`, for example `v0.1.3` for version `0.1.3`. If npm rejects the OIDC
 authentication, check the exact publisher fields and allowed actions above;
 recreate an expired publisher configuration and rerun the failed workflow.
 
@@ -258,7 +302,7 @@ when establishing a reproducible dependency baseline.
 Install a tagged release from the public repository:
 
 ```sh
-pi install git:github.com/j842/pi-discrimen@v0.1.2
+pi install git:github.com/j842/pi-discrimen@v0.1.3
 ```
 
 Private repositories require the user's Git credentials. A public repository is
@@ -268,12 +312,12 @@ package. A tagged installation stays pinned to that tag.
 
 ### Downloadable archive
 
-`npm pack` creates `pi-discrimen-0.1.2.tgz`. Share that file; recipients extract
+`npm pack` creates `pi-discrimen-0.1.3.tgz`. Share that file; recipients extract
 it into a permanent directory and install the extracted package by local path:
 
 ```sh
 mkdir pi-discrimen
-tar -xzf pi-discrimen-0.1.2.tgz -C pi-discrimen --strip-components=1
+tar -xzf pi-discrimen-0.1.3.tgz -C pi-discrimen --strip-components=1
 pi install ./pi-discrimen
 ```
 
@@ -294,6 +338,12 @@ executes Pi's `read` tool against a temporary file, and observes both backend
 identities in the footer API. It requires no router key or running model and
 does not alter your Pi configuration. A production router smoke test remains
 useful before a release to confirm the deployed router's protocol and headers.
+
+The same CLI test covers Flash Next without a catalogue thinking flag, off and
+medium requests, 16K output, context headroom, the 600-second HTTP timeout and
+existing model/settings overrides. Set `PI_DISCRIMEN_PI_CLI` to another stock Pi
+`dist/bundle/cli.js` to exercise that version without changing development
+dependencies.
 
 Only `src/`, package metadata, this README, the extension manifest, and the
 licence are included in the npm archive. Tests and development dependencies are

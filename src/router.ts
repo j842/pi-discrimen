@@ -2,6 +2,7 @@ import type { ApiKeyCredential, Credential, Model } from "@earendil-works/pi-ai"
 
 export const PROVIDER = "discrimen";
 export const DISCOVERY_TIMEOUT_MS = 8_000;
+export const FLASH_NEXT_HEADROOM = 16_384;
 export type RouterModel = Model<"openai-completions">;
 export type Environment = (name: string) => string | undefined | Promise<string | undefined>;
 export interface Connection { baseUrl: string; apiKey: string }
@@ -50,6 +51,12 @@ function positiveInteger(value: unknown): number | undefined {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : undefined;
 }
 
+/** Match the model family, including short fleet aliases with a full display name. */
+function isFlashNext(id: string, name: unknown): boolean {
+  return [id, typeof name === "string" ? name : ""].some((value) =>
+    value.toLowerCase().replace(/[^a-z0-9]/g, "").includes("qwen38flashnext"));
+}
+
 export function mapCatalogue(payload: unknown, baseUrl: string): RouterModel[] {
   if (!record(payload) || !Array.isArray(payload.data)) throw new Error("The router did not return a /v1/models catalogue.");
   const models = new Map<string, RouterModel>();
@@ -58,8 +65,13 @@ export function mapCatalogue(payload: unknown, baseUrl: string): RouterModel[] {
     const features = Array.isArray(entry.features) ? entry.features : [];
     if (features.includes("embeddings") && !features.includes("chat")) continue;
     const automatic = entry.id === "default" || entry.id === "expert";
-    const contextWindow = positiveInteger(entry.context_length) ?? 32_768;
-    const outputLimit = positiveInteger(entry.max_output_tokens) ?? positiveInteger(entry.max_tokens) ?? 8_192;
+    const flashNext = !automatic && isFlashNext(entry.id, entry.name);
+    const measuredContext = positiveInteger(entry.context_length) ?? 32_768;
+    // Pi subtracts its response reserve from this usable window. An extra 16K
+    // moves stock compaction to 229376 on a 262144-token Flash Next worker.
+    const contextWindow = measuredContext - (flashNext ? Math.min(FLASH_NEXT_HEADROOM, Math.floor(measuredContext / 4)) : 0);
+    const advertisedOutput = positiveInteger(entry.max_output_tokens) ?? positiveInteger(entry.max_tokens);
+    const outputLimit = flashNext ? Math.min(advertisedOutput ?? 16_384, 16_384) : advertisedOutput ?? 8_192;
     models.set(entry.id, {
       id: entry.id,
       name: entry.id === "default" ? "Discrimen — Auto" : entry.id === "expert" ? "Discrimen — Expert" : displayText(typeof entry.name === "string" ? entry.name : entry.id),
@@ -67,12 +79,15 @@ export function mapCatalogue(payload: unknown, baseUrl: string): RouterModel[] {
       provider: PROVIDER,
       baseUrl,
       // Automatic routes must omit reasoning_effort, including Pi's "none".
-      reasoning: !automatic && features.includes("thinking"),
-      thinkingLevelMap: { off: "none" },
+      reasoning: !automatic && (flashNext || features.includes("thinking")),
+      thinkingLevelMap: flashNext
+        ? { off: "none", minimal: "low", low: "low", medium: "medium", high: "high", xhigh: null, max: null }
+        : { off: "none" },
       input: features.includes("vision") ? ["text", "image"] : ["text"],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow,
       maxTokens: Math.max(1, Math.min(outputLimit, Math.floor(contextWindow / 4))),
+      samplingParams: { fit_max_tokens: true },
       compat: { maxTokensField: "max_tokens", supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: !automatic },
     });
   }

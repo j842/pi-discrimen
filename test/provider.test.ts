@@ -1,13 +1,25 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createModels, type Credential, type RefreshModelsContext } from "@earendil-works/pi-ai";
-import { createDiscrimenProvider, primeProvider } from "../src/provider.ts";
+import { createDiscrimenProvider, primeProvider, requestTimeoutMs } from "../src/provider.ts";
 import { credentialFor } from "../src/router.ts";
 
 const credential = credentialFor({ baseUrl: "http://router/v1", apiKey: "key" });
 const refreshContext = (overrides: Partial<RefreshModelsContext> = {}): RefreshModelsContext => ({
   credential, allowNetwork: true, signal: new AbortController().signal,
   async publish(publication) { publication.update?.(); return true; }, ...overrides,
+});
+
+test("request timeout replaces only the stock default and honours explicit settings including disabled timeouts", () => {
+  assert.equal(requestTimeoutMs(undefined, {}), 600_000);
+  assert.equal(requestTimeoutMs(300_000, {}), 600_000);
+  assert.equal(requestTimeoutMs(900_000, {}), 900_000);
+  assert.equal(requestTimeoutMs(10_000, {}), 10_000);
+  assert.equal(requestTimeoutMs(300_000, { httpIdleTimeoutMs: 300_000 }), 300_000);
+  assert.equal(requestTimeoutMs(1_800_000, { httpIdleTimeoutMs: 1_800_000 }), 1_800_000);
+  assert.equal(requestTimeoutMs(2_147_483_647, { httpIdleTimeoutMs: 0 }), 2_147_483_647);
+  assert.equal(requestTimeoutMs(0, { retry: { provider: { timeoutMs: 0 } } }), 0);
+  assert.equal(requestTimeoutMs(300_000, { retry: { provider: { timeoutMs: 300_000 } } }), 300_000);
 });
 
 test("native login asks for a masked key, validates before returning a credential, and reuses its catalogue", async () => {
